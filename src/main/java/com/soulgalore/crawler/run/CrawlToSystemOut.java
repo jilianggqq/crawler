@@ -32,42 +32,41 @@ import com.soulgalore.crawler.guice.CrawlModule;
 
 public class CrawlToSystemOut extends AbstractCrawl {
 
-  CrawlToSystemOut(String[] args) throws ParseException {
-    super(args);
+	CrawlToSystemOut(String[] args) throws ParseException {
+		super(args);
 
-  }
+	}
 
-  /**
-   * Run.
-   * 
-   * @param args the args
-   */
-  public static void main(String[] args) {
+	/**
+	 * Run.
+	 * 
+	 * @param args
+	 *            the args
+	 */
+	public static void main(String[] args) {
 
-    try {
-      final CrawlToSystemOut crawl = new CrawlToSystemOut(args);
-      crawl.crawl();
+		try {
+			final CrawlToSystemOut crawl = new CrawlToSystemOut(args);
+			crawl.crawl();
 
-    } catch (ParseException e) {
-      System.err.print(e.getMessage());
-    } catch (IllegalArgumentException e) {
-      System.err.println(e.getMessage());
-    }
+		} catch (ParseException e) {
+			System.err.print(e.getMessage());
+		} catch (IllegalArgumentException e) {
+			System.err.println(e.getMessage());
+		}
 
-  }
+	}
 
-  private void crawl() {
-    final Injector injector = Guice.createInjector(new CrawlModule());
-    final Crawler crawler = injector.getInstance(Crawler.class);
+	private void crawl() {
+		final Injector injector = Guice.createInjector(new CrawlModule());
+		final Crawler crawler = injector.getInstance(Crawler.class);
 
-    final CrawlerResult result = crawler.getUrls(getConfiguration());
+		final CrawlerResult result = crawler.getUrls(getConfiguration());
 
+		for (CrawlerURL workingUrls : result.getUrls()) {
+			System.out.println(workingUrls.getUrl());
+		}
 
-    for (CrawlerURL workingUrls : result.getUrls()) {
-      System.out.println(workingUrls.getUrl());
-    }
-
-
-    crawler.shutdown();
-  }
+		crawler.shutdown();
+	}
 }
