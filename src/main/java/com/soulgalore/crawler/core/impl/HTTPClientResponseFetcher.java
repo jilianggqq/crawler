@@ -41,6 +41,7 @@ import org.apache.http.protocol.BasicHttpContext;
 import org.apache.http.protocol.ExecutionContext;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+import org.eclipse.jetty.util.ssl.SslContextFactory;
 
 import com.google.inject.Inject;
 import com.soulgalore.crawler.core.CrawlerURL;
@@ -72,6 +73,18 @@ public class HTTPClientResponseFetcher implements HTMLPageResponseFetcher {
 	public void shutdown() {
 		httpClient.getConnectionManager().shutdown();
 	}
+	
+//	public HTMLPageResponse get2(CrawlerURL url, boolean getPage, Map<String, String> requestHeaders, boolean followRedirectsToNewDomain) {
+//		if (url.isWrongSyntax()) {
+//			return new HTMLPageResponse(url, StatusCode.SC_MALFORMED_URI.getCode(), Collections.<String, String>emptyMap(), "", "", 0, "", 0);
+//		}
+//		HttpClient httpClient = new HttpClient(new SslContextFactory());
+//		// Configure HttpClient here
+//		// httpClient.doStart();
+//		httpClient.start();
+//		
+//	}
+	
 
 	public HTMLPageResponse get(CrawlerURL url, boolean getPage, Map<String, String> requestHeaders, boolean followRedirectsToNewDomain) {
 
