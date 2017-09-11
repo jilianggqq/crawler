@@ -6,10 +6,14 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+
+import javax.swing.UIDefaults.LazyValue;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.Request;
@@ -24,43 +28,57 @@ import com.soulgalore.crawler.core.HTMLPageResponse;
 import com.soulgalore.crawler.core.HTMLPageResponseFetcher;
 import com.soulgalore.crawler.util.StatusCode;
 
-public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
+public class JettyClientResponseFetcher {
+
+	private Set<HTMLPageResponse> responses;
+
+	public JettyClientResponseFetcher() {
+		this.responses = new HashSet<>();
+	}
+
+	public Set<HTMLPageResponse> getResponses() {
+		return this.responses;
+	}
 
 	public static void main(String[] args) {
 		JettyClientResponseFetcher test = new JettyClientResponseFetcher();
-		test.get(new CrawlerURL("http://www.mkyong.com/"), false, new HashMap<>(), false);
+		Set<CrawlerURL> urls = new HashSet<>();
+		urls.add(new CrawlerURL("http://www.mkyong.com/"));
+		urls.add(new CrawlerURL("http://www.google.com/"));
+		System.out.println("starting.....");
+
+		test.get(urls, new HashMap<>());
+		for (HTMLPageResponse rs : test.responses) {
+			System.out.println(rs.getPageUrl());
+			System.out.println(rs.getBody());
+
+		}
 	}
 
-	@Override
-	public HTMLPageResponse get(CrawlerURL url, boolean fetchBody, Map<String, String> requestHeaders, boolean followRedirectsToNewDomain) {
-		// TODO Auto-generated method stub
-		// return null;
-		// Configure HttpClient here
-		// httpClient.doStart();
+	public void getResponse(CrawlerURL url, Map<String, String> requestHeaders, CountDownLatch latch, HttpClient httpClient) {
 		if (url.isWrongSyntax()) {
-			return new HTMLPageResponse(url, StatusCode.SC_MALFORMED_URI.getCode(), Collections.<String, String>emptyMap(), "", "", 0, "", 0);
+			HTMLPageResponse htmlPageResponse = new HTMLPageResponse(url, StatusCode.SC_MALFORMED_URI.getCode(),
+					Collections.<String, String>emptyMap(), "", "", 0, "", 0);
+			responses.add(htmlPageResponse);
+			latch.countDown();
 		}
-		HttpClient httpClient = new HttpClient(new SslContextFactory());
-
-		// final HttpGet get = new HttpGet(url.getUri());
-		// newRequest.he
+		// HttpClient httpClient = new HttpClient(new SslContextFactory());
 
 		// HttpEntity entity = null;
-		final long start = System.currentTimeMillis();
+		// final long start = System.currentTimeMillis();
 		final Map<String, String> headersAndValues = new HashMap<>();
 
 		try {
-			httpClient.start();
+			// httpClient.start();
 			Request newRequest = httpClient.newRequest(url.getUrl());
 			for (String key : requestHeaders.keySet()) {
 				// get.setHeader(key, requestHeaders.get(key));
 				newRequest.header(key, requestHeaders.get(key));
 			}
-			final CountDownLatch latch = new CountDownLatch(1);
-			final HTMLPageResponse response2;
-//			final AtomicReference<HTMLPageResponse> responseRef = new AtomicReference<>();
-			final AtomicReference<List<HTMLPageResponse>> responseRef = new AtomicReference<>();
-			final int size;
+			// final CountDownLatch latch = new CountDownLatch(1);
+			// final AtomicReference<List<HTMLPageResponse>> responseRef = new AtomicReference<>();
+			final AtomicReference<HTMLPageResponse> responseRef = new AtomicReference<>();
+			// final int size;
 			newRequest.onResponseHeaders(response -> {
 				HttpFields headers = response.getHeaders();
 				for (String name : headers.getFieldNamesCollection()) {
@@ -84,10 +102,12 @@ public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
 					System.out.println(Thread.currentThread().getName());
 					// result.getResponse().getStatus()
 					List<HTMLPageResponse> list = new ArrayList<>();
-					list.add(new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
-					responseRef.set(list);
-//					responseRef.set(
-//							new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
+					HTMLPageResponse hpresponse = new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size,
+							getMediaType(), 0);
+					// responseRef.set(hpresponse);
+					responses.add(hpresponse);
+					// responseRef.set(
+					// new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
 					latch.countDown();
 				}
 
@@ -100,27 +120,41 @@ public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
 
 			});
 
-			latch.await();
-			List<HTMLPageResponse> results = responseRef.get();
-			HTMLPageResponse htmlPageResponse = results.get(0);
-			System.out.println(htmlPageResponse.getUrl());
-			System.out.println(htmlPageResponse.getResponseType());
-			// return new HTMLPageResponse(url, sc, headersAndValues, body, encoding, size, type, fetchTime);
-			return htmlPageResponse;
+			// latch.await();
+			// HTMLPageResponse htmlPageResponse = responseRef.get();
+			// System.out.println(htmlPageResponse.getUrl());
+			// System.out.println(htmlPageResponse.getResponseType());
+			// // return new HTMLPageResponse(url, sc, headersAndValues, body, encoding, size, type, fetchTime);
+			// return htmlPageResponse;
 
 		} catch (Exception e) {
 			System.err.println(e);
-			return new HTMLPageResponse(url, StatusCode.SC_SERVER_RESPONSE_UNKNOWN.getCode(), Collections.<String, String>emptyMap(), "", "", 0, "",
-					-1);
-		} finally {
-			// get.releaseConnection();
+			HTMLPageResponse htmlPageResponse = new HTMLPageResponse(url, StatusCode.SC_SERVER_RESPONSE_UNKNOWN.getCode(),
+					Collections.<String, String>emptyMap(), "", "", 0, "", -1);
+			responses.add(htmlPageResponse);
+			latch.countDown();
 		}
 	}
 
-	@Override
-	public void shutdown() {
-		// TODO Auto-generated method stub
-
+	public void get(Set<CrawlerURL> urls, Map<String, String> requestHeaders) {
+		try {
+			HttpClient httpClient = new HttpClient(new SslContextFactory());
+			httpClient.start();
+			// Set<HTMLPageResponse> responses = new HashSet<>();
+			final CountDownLatch latch = new CountDownLatch(urls.size());
+			for (CrawlerURL crawlerURL : urls) {
+				getResponse(crawlerURL, requestHeaders, latch, httpClient);
+				// responses.add(response);
+			}
+			latch.await();
+			httpClient.stop();
+			System.out.println("+++++");
+			// return responses;
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			// return null;
+		}
 	}
 
 }

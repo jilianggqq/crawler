@@ -1,26 +1,7 @@
-/******************************************************
- * Web crawler
- * 
- * 
- * Copyright (C) 2012 by Peter Hedenskog (http://peterhedenskog.com)
- * 
- ****************************************************** 
- * 
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- * 
- * 
- * http://www.apache.org/licenses/LICENSE-2.0
- * 
- * Unless required by applicable law or agreed to in writing, software distributed under the License
- * is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express
- * or implied. See the License for the specific language governing permissions and limitations under
- * the License.
- * 
- ******************************************************* 
- */
 package com.soulgalore.crawler.core.impl;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,31 +10,35 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import javax.security.auth.x500.X500Principal;
+import javax.swing.JScrollBar;
+
 import org.apache.http.HttpStatus;
+import org.eclipse.jetty.util.HostMap;
 
 import com.google.inject.Inject;
-import com.soulgalore.crawler.core.CrawlerConfiguration;
-import com.soulgalore.crawler.core.PageURLParser;
 import com.soulgalore.crawler.core.Crawler;
+import com.soulgalore.crawler.core.CrawlerConfiguration;
 import com.soulgalore.crawler.core.CrawlerResult;
-import com.soulgalore.crawler.core.HTMLPageResponseCallable;
 import com.soulgalore.crawler.core.CrawlerURL;
 import com.soulgalore.crawler.core.HTMLPageResponse;
+import com.soulgalore.crawler.core.HTMLPageResponseCallable;
 import com.soulgalore.crawler.core.HTMLPageResponseFetcher;
+import com.soulgalore.crawler.core.PageURLParser;
 import com.soulgalore.crawler.util.StatusCode;
 
 /**
  * Crawl urls within the same domain.
  * 
  */
-public class DefaultCrawler implements Crawler {
+public class JettyCrawler {
 
 	private final HTMLPageResponseFetcher responseFetcher;
 	private final ExecutorService service;
@@ -69,11 +54,31 @@ public class DefaultCrawler implements Crawler {
 	 * @param theParser
 	 *            the parser.
 	 */
-	@Inject
-	public DefaultCrawler(HTMLPageResponseFetcher theResponseFetcher, ExecutorService theService, PageURLParser theParser) {
+	public JettyCrawler(HTMLPageResponseFetcher theResponseFetcher, ExecutorService theService, PageURLParser theParser) {
 		service = theService;
 		responseFetcher = theResponseFetcher;
 		parser = theParser;
+	}
+	
+	public JettyCrawler(PageURLParser theParser) {
+		parser = theParser;
+		responseFetcher = null;
+		service = null;
+	}
+	
+	public static void main(String[] args) throws URISyntaxException {
+		JettyCrawler jc = new JettyCrawler(new AhrefPageURLParser());
+//		jc.getNextLevelLinks(allUrls, currUrls, verifiedUrls, requestHeaders);
+		CrawlerConfiguration config = CrawlerConfiguration.builder().setStartUrl("https://www.scientificamerican.com/podcast/60-second-science/").setMaxLevels(2).build();
+		
+		
+		jc.getUrl(config);
+	}
+	
+	public static String getDomainName(String url) throws URISyntaxException {
+	    URI uri = new URI(url);
+	    return uri.getHost();
+
 	}
 
 	/**
@@ -85,68 +90,32 @@ public class DefaultCrawler implements Crawler {
 		if (responseFetcher != null)
 			responseFetcher.shutdown();
 	}
-
-	public CrawlerResult getUrls2(CrawlerConfiguration configuration) {
-
+	
+	public void getUrl(CrawlerConfiguration configuration) throws URISyntaxException {
 		final Map<String, String> requestHeaders = configuration.getRequestHeadersMap();
-		final HTMLPageResponse resp = verifyInput(configuration.getStartUrl(), configuration.getOnlyOnPath(), requestHeaders);
+//		final HTMLPageResponse resp = verifyInput(configuration.getStartUrl(), requestHeaders);
 
+		String host = getDomainName(configuration.getStartUrl());
 		int level = 0;
-
+		Set<CrawlerURL> currUrls = new HashSet<>();
 		final Set<CrawlerURL> allUrls = new LinkedHashSet<CrawlerURL>();
-		final Set<HTMLPageResponse> verifiedUrls = new LinkedHashSet<HTMLPageResponse>();
-		final Set<HTMLPageResponse> nonWorkingResponses = new LinkedHashSet<HTMLPageResponse>();
 
-		verifiedUrls.add(resp);
-
-		final String host = resp.getPageUrl().getHost();
-
-		if (configuration.getMaxLevels() > 0) {
-
-			// set the start url
-			Set<CrawlerURL> nextToFetch = new LinkedHashSet<CrawlerURL>();
-			nextToFetch.add(resp.getPageUrl());
-
-			CrawlerURL pageUrl = resp.getPageUrl();
-
-			// while (level < configuration.getMaxLevels()) {
-			//
-			// final Map<Future<HTMLPageResponse>, CrawlerURL> futures = new HashMap<Future<HTMLPageResponse>, CrawlerURL>(nextToFetch.size());
-			//
-			// for (CrawlerURL testURL : nextToFetch) {
-			// futures.put(service.submit(new HTMLPageResponseCallable(testURL, responseFetcher, true, requestHeaders, false)), testURL);
-			// }
-			//
-			// nextToFetch = fetchNextLevelLinks(futures, allUrls, nonWorkingResponses, verifiedUrls, host, configuration.getOnlyOnPath(),
-			// configuration.getNotOnPath());
-			// level++;
-			// }
-		} else {
-			allUrls.add(resp.getPageUrl());
+		CrawlerURL startURI = new CrawlerURL(configuration.getStartUrl());
+		currUrls.add(startURI);
+		allUrls.add(startURI);
+		
+		while (level < configuration.getMaxLevels()) {
+			currUrls.forEach(url -> System.out.println(url));
+			System.out.println("---------------------------");
+			currUrls = getNextLevelLinks(allUrls, currUrls, host, requestHeaders);
+			currUrls.forEach(url -> System.out.println(url));
+			level++;
 		}
 
-		if (configuration.isVerifyUrls())
-			verifyUrls(allUrls, verifiedUrls, nonWorkingResponses, requestHeaders);
+//		verifiedUrls.add(resp);
 
-		LinkedHashSet<CrawlerURL> workingUrls = new LinkedHashSet<CrawlerURL>();
-		for (HTMLPageResponse workingResponses : verifiedUrls) {
-			workingUrls.add(workingResponses.getPageUrl());
-		}
-
-		// TODO find a better fix for this
-		// wow, this is a hack to fix if the first URL is redirected,
-		// then we want to keep that original start url
-		if (workingUrls.size() >= 1) {
-			List<CrawlerURL> list = new ArrayList<CrawlerURL>(workingUrls);
-			list.add(0, new CrawlerURL(configuration.getStartUrl()));
-			list.remove(1);
-			workingUrls.clear();
-			workingUrls.addAll(list);
-		}
-
-		return new CrawlerResult(configuration.getStartUrl(), configuration.isVerifyUrls() ? workingUrls : allUrls, verifiedUrls,
-				nonWorkingResponses);
-
+//		final String host = resp.getPageUrl().getHost();
+//		getNextLevelLinks(allUrls, currUrls, verifiedUrls, new HashMap<>());
 	}
 
 	/**
@@ -216,11 +185,35 @@ public class DefaultCrawler implements Crawler {
 				nonWorkingResponses);
 
 	}
-	
-//	public Set<CrawlerURL> getNextLevelLinks(Set<CrawlerURL> allUrls, Set<CrawlerURL> currUrls, Set<HTMLPageResponse> verifiedUrls) {
-//		JettyClientResponseFetcher fetcher = new JettyClientResponseFetcher();
-//		
-//	}
+
+	public Set<CrawlerURL> getNextLevelLinks(Set<CrawlerURL> allUrls, Set<CrawlerURL> currUrls, String host,
+			Map<String, String> requestHeaders) {
+		JettyClientResponseFetcher fetcher = new JettyClientResponseFetcher();
+		fetcher.get(currUrls, requestHeaders);
+		Set<HTMLPageResponse> responses = fetcher.getResponses();
+		final Set<CrawlerURL> nextLevel = new LinkedHashSet<CrawlerURL>();
+
+		for (HTMLPageResponse response : responses) {
+			if (HttpStatus.SC_OK == response.getResponseCode() && response.getResponseType().indexOf("html") > 0) {
+				// we know that this links work
+				final Set<CrawlerURL> allLinks = parser.get(response);
+
+				for (CrawlerURL link : allLinks) {
+					// only add if it is the same host
+					if (host.equals(link.getHost()) && !allUrls.contains(link)) {
+						nextLevel.add(link);
+						allUrls.add(link);
+					}
+				}
+			} else {
+				allUrls.remove(response.getUrl());
+			}
+		}
+		
+		
+		
+		return nextLevel;
+	}
 
 	/**
 	 * Fetch links to the next level of the crawl.
@@ -345,10 +338,9 @@ public class DefaultCrawler implements Crawler {
 
 	private HTMLPageResponse fetchOnePage(CrawlerURL url, Map<String, String> requestHeaders) {
 		return responseFetcher.get(url, true, requestHeaders, true);
-
 	}
 
-	private HTMLPageResponse verifyInput(String startUrl, String onlyOnPath, Map<String, String> requestHeaders) {
+	private HTMLPageResponse verifyInput(String startUrl, String string, Map<String, String> requestHeaders) {
 
 		final CrawlerURL pageUrl = new CrawlerURL(startUrl);
 
