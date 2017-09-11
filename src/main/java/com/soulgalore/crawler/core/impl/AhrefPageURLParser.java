@@ -40,62 +40,64 @@ import com.soulgalore.crawler.core.HTMLPageResponse;
  */
 public class AhrefPageURLParser implements PageURLParser {
 
-  private static final String AHREF = "a[href]";
-  private static final String ABS_HREF = "abs:href";
+	private static final String AHREF = "a[href]";
+	private static final String ABS_HREF = "abs:href";
 
-  private static final String MAIL_TO = "mailto:";
-  private static final String IFRAME = "iframe";
+	private static final String MAIL_TO = "mailto:";
+	private static final String IFRAME = "iframe";
 
-  /**
-   * Create a parser.
-   */
-  public AhrefPageURLParser() {
+	/**
+	 * Create a parser.
+	 */
+	public AhrefPageURLParser() {
 
-  }
+	}
 
-  /**
-   * Get all ahref links within this page response.
-   * 
-   * @param theResponse the response from the request to this page
-   * @return the urls.
-   */
-  public Set<CrawlerURL> get(HTMLPageResponse theResponse) {
+	/**
+	 * Get all ahref links within this page response.
+	 * 
+	 * @param theResponse
+	 *            the response from the request to this page
+	 * @return the urls.
+	 */
+	public Set<CrawlerURL> get(HTMLPageResponse theResponse) {
 
-    final String url = theResponse.getUrl();
+		final String url = theResponse.getUrl();
 
-    Set<CrawlerURL> ahrefs = new HashSet<CrawlerURL>();
+		Set<CrawlerURL> ahrefs = new HashSet<CrawlerURL>();
 
-    // only populate if we have a valid response, else return empty set
-    if (theResponse.getResponseCode() == HttpStatus.SC_OK) {
-      ahrefs = fetch(AHREF, ABS_HREF, theResponse.getBody(), url);
-    }
+		// only populate if we have a valid response, else return empty set
+		if (theResponse.getResponseCode() == HttpStatus.SC_OK) {
+			ahrefs = fetch(AHREF, ABS_HREF, theResponse.getBody(), url);
+		}
 
-    return ahrefs;
-  }
+		return ahrefs;
+	}
 
-  private Set<CrawlerURL> fetch(String query, String attributeKey, Document doc, String url) {
+	private Set<CrawlerURL> fetch(String query, String attributeKey, Document doc, String url) {
 
-    final Set<CrawlerURL> urls = new HashSet<CrawlerURL>();
+		final Set<CrawlerURL> urls = new HashSet<CrawlerURL>();
 
-    final Elements elements = doc.select(query);
+		final Elements elements = doc.select(query);
 
-    for (Element src : elements) {
+		for (Element src : elements) {
 
-      if (src.attr(attributeKey).isEmpty()) continue;
+			if (src.attr(attributeKey).isEmpty())
+				continue;
 
-      // don't fetch mailto links
-      if (src.attr(attributeKey).startsWith(MAIL_TO))
-        continue;
+			// don't fetch mailto links
+			if (src.attr(attributeKey).startsWith(MAIL_TO))
+				continue;
 
-      else if (IFRAME.equals(src.tag().getName()))
-        urls.add(new CrawlerURL(src.attr(attributeKey), url));
+			else if (IFRAME.equals(src.tag().getName()))
+				urls.add(new CrawlerURL(src.attr(attributeKey), url));
 
-      else
-        urls.add(new CrawlerURL(src.attr(attributeKey), url));
+			else
+				urls.add(new CrawlerURL(src.attr(attributeKey), url));
 
-    }
+		}
 
-    return urls;
+		return urls;
 
-  }
+	}
 }

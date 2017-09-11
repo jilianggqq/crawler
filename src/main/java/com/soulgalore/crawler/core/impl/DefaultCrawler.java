@@ -86,6 +86,10 @@ public class DefaultCrawler implements Crawler {
 			responseFetcher.shutdown();
 	}
 
+//	public CrawlerResult getUrls2(CrawlerConfiguration configuration) {
+//
+//	}
+
 	/**
 	 * Get the urls.
 	 * 
