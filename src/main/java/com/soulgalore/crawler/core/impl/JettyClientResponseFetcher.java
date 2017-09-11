@@ -3,8 +3,10 @@ package com.soulgalore.crawler.core.impl;
 import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -56,7 +58,8 @@ public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
 			}
 			final CountDownLatch latch = new CountDownLatch(1);
 			final HTMLPageResponse response2;
-			final AtomicReference<HTMLPageResponse> responseRef = new AtomicReference<>();
+//			final AtomicReference<HTMLPageResponse> responseRef = new AtomicReference<>();
+			final AtomicReference<List<HTMLPageResponse>> responseRef = new AtomicReference<>();
 			final int size;
 			newRequest.onResponseHeaders(response -> {
 				HttpFields headers = response.getHeaders();
@@ -80,8 +83,11 @@ public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
 					// System.out.println(res);
 					System.out.println(Thread.currentThread().getName());
 					// result.getResponse().getStatus()
-					responseRef.set(
-							new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
+					List<HTMLPageResponse> list = new ArrayList<>();
+					list.add(new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
+					responseRef.set(list);
+//					responseRef.set(
+//							new HTMLPageResponse(url, result.getResponse().getStatus(), headersAndValues, body, encoding, size, getMediaType(), 0));
 					latch.countDown();
 				}
 
@@ -95,7 +101,8 @@ public class JettyClientResponseFetcher implements HTMLPageResponseFetcher {
 			});
 
 			latch.await();
-			HTMLPageResponse htmlPageResponse = responseRef.get();
+			List<HTMLPageResponse> results = responseRef.get();
+			HTMLPageResponse htmlPageResponse = results.get(0);
 			System.out.println(htmlPageResponse.getUrl());
 			System.out.println(htmlPageResponse.getResponseType());
 			// return new HTMLPageResponse(url, sc, headersAndValues, body, encoding, size, type, fetchTime);
