@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>com.soulgalore</groupId>
 	<artifactId>crawler</artifactId>
@@ -17,6 +18,7 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<jettyVersion>9.4.6.v20170531</jettyVersion>
 	</properties>
 
 	<developers>
@@ -55,7 +57,19 @@
 			<scope>compile</scope>
 		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-util -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-util</artifactId>
+			<version>${jettyVersion}</version>
+		</dependency>
 
+		<!-- https://mvnrepository.com/artifact/org.eclipse.jetty/jetty-client -->
+		<dependency>
+			<groupId>org.eclipse.jetty</groupId>
+			<artifactId>jetty-client</artifactId>
+			<version>${jettyVersion}</version>
+		</dependency>
 
 
 		<!-- Used for fetching HTML elements within pages -->
@@ -81,12 +95,12 @@
 			<version>1.2</version>
 			<scope>compile</scope>
 		</dependency>
-		
+
 		<dependency>
-                       <groupId>com.google.code.gson</groupId>
-                       <artifactId>gson</artifactId>
-                       <version>2.2.4</version>
-               </dependency>
+			<groupId>com.google.code.gson</groupId>
+			<artifactId>gson</artifactId>
+			<version>2.2.4</version>
+		</dependency>
 
 		<!-- Woho, testing! -->
 		<dependency>
@@ -223,7 +237,7 @@
 		</plugins>
 	</build>
 
- 
+
 	<profiles>
 		<profile>
 			<id>release-sign-artifacts</id>

@@ -86,9 +86,70 @@ public class DefaultCrawler implements Crawler {
 			responseFetcher.shutdown();
 	}
 
-//	public CrawlerResult getUrls2(CrawlerConfiguration configuration) {
+	public CrawlerResult getUrls2(CrawlerConfiguration configuration) {
+
+		final Map<String, String> requestHeaders = configuration.getRequestHeadersMap();
+		final HTMLPageResponse resp = verifyInput(configuration.getStartUrl(), configuration.getOnlyOnPath(), requestHeaders);
+
+		int level = 0;
+
+		final Set<CrawlerURL> allUrls = new LinkedHashSet<CrawlerURL>();
+		final Set<HTMLPageResponse> verifiedUrls = new LinkedHashSet<HTMLPageResponse>();
+		final Set<HTMLPageResponse> nonWorkingResponses = new LinkedHashSet<HTMLPageResponse>();
+
+		verifiedUrls.add(resp);
+
+		final String host = resp.getPageUrl().getHost();
+
+		if (configuration.getMaxLevels() > 0) {
+
+			// set the start url
+			Set<CrawlerURL> nextToFetch = new LinkedHashSet<CrawlerURL>();
+			nextToFetch.add(resp.getPageUrl());
+
+			CrawlerURL pageUrl = resp.getPageUrl();
+			
+			
+			
+//			while (level < configuration.getMaxLevels()) {
 //
-//	}
+//				final Map<Future<HTMLPageResponse>, CrawlerURL> futures = new HashMap<Future<HTMLPageResponse>, CrawlerURL>(nextToFetch.size());
+//
+//				for (CrawlerURL testURL : nextToFetch) {
+//					futures.put(service.submit(new HTMLPageResponseCallable(testURL, responseFetcher, true, requestHeaders, false)), testURL);
+//				}
+//
+//				nextToFetch = fetchNextLevelLinks(futures, allUrls, nonWorkingResponses, verifiedUrls, host, configuration.getOnlyOnPath(),
+//						configuration.getNotOnPath());
+//				level++;
+//			}
+		} else {
+			allUrls.add(resp.getPageUrl());
+		}
+
+		if (configuration.isVerifyUrls())
+			verifyUrls(allUrls, verifiedUrls, nonWorkingResponses, requestHeaders);
+
+		LinkedHashSet<CrawlerURL> workingUrls = new LinkedHashSet<CrawlerURL>();
+		for (HTMLPageResponse workingResponses : verifiedUrls) {
+			workingUrls.add(workingResponses.getPageUrl());
+		}
+
+		// TODO find a better fix for this
+		// wow, this is a hack to fix if the first URL is redirected,
+		// then we want to keep that original start url
+		if (workingUrls.size() >= 1) {
+			List<CrawlerURL> list = new ArrayList<CrawlerURL>(workingUrls);
+			list.add(0, new CrawlerURL(configuration.getStartUrl()));
+			list.remove(1);
+			workingUrls.clear();
+			workingUrls.addAll(list);
+		}
+
+		return new CrawlerResult(configuration.getStartUrl(), configuration.isVerifyUrls() ? workingUrls : allUrls, verifiedUrls,
+				nonWorkingResponses);
+
+	}
 
 	/**
 	 * Get the urls.

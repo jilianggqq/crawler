@@ -68,6 +68,7 @@ public class HTMLPageResponseCallable implements Callable<HTMLPageResponse> {
 	 * @throws InterruptedException
 	 *             if it takes longer time than the configured max time to fetch the response
 	 */
+	@Override
 	public HTMLPageResponse call() throws InterruptedException {
 		return fetcher.get(url, fetchPage, requestHeaders, followRedirectsToNewDomain);
 	}
